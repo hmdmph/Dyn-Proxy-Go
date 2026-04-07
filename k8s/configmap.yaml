@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dyn-proxy-go-config
+  labels:
+    app: dyn-proxy-go
+data:
+  TARGET_HOST: "httpbin.org"
+  TARGET_PORT: "443"
+  TARGET_SCHEME: "https"
+  SNI: "httpbin.org"
+  LOG_LEVEL: "debug"
+  READ_TIMEOUT: "30"
+  WRITE_TIMEOUT: "30"
+  IDLE_TIMEOUT: "120"
+  SKIP_TLS_VERIFY: "false"
+  PAGE_TITLE: "Dyn-Proxy-Go"
+  SUB_TITLE: "Click on your proxy to navigate through it"
+  PROXY_LIST: |
+    proxyList:
+      - name: Proxy-1
+        Path: /proxy-1                
+      - name: Proxy-2
+        Path: /proxy-1        
+      - name: Httpbin
+        Path: /        

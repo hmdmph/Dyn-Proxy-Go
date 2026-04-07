@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dyn-proxy-go
+  labels:
+    app: dyn-proxy-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dyn-proxy-go
+  template:
+    metadata:
+      labels:
+        app: dyn-proxy-go
+    spec:
+      containers:
+      - name: dyn-proxy-go
+        image: ghcr.io/hmdmph/dyn-proxy-go:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: LISTEN_PORT
+          value: "8080"
+        - name: TARGET_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: TARGET_HOST
+        - name: TARGET_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: TARGET_PORT
+        - name: TARGET_SCHEME
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: TARGET_SCHEME
+        - name: SNI
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: SNI
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: LOG_LEVEL
+        - name: READ_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: READ_TIMEOUT
+        - name: WRITE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: WRITE_TIMEOUT
+        - name: IDLE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: IDLE_TIMEOUT
+        - name: SKIP_TLS_VERIFY
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: SKIP_TLS_VERIFY
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dyn-proxy-go-service
+  labels:
+    app: dyn-proxy-go
+spec:
+  selector:
+    app: dyn-proxy-go
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
