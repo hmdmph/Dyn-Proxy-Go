@@ -18,6 +18,8 @@ A dynamic HTTP/HTTPS reverse proxy written in Go that intelligently routes reque
 - **Distroless Docker Image** — Minimal, secure container image
 - **Kubernetes Ready** — Complete K8s manifests included
 
+![dyn-proxy-go-UI](./dyn-proxy-go.png)
+
 ## Quick Start
 
 ### Build & Run

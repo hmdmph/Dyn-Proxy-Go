@@ -5,7 +5,7 @@ metadata:
   labels:
     app: dyn-proxy-go
 data:
-  TARGET_HOST: "httpbin.org"
+  TARGET_HOST: "httpbin.org" # sample use httpbin.org for testing
   TARGET_PORT: "443"
   TARGET_SCHEME: "https"
   SNI: "httpbin.org"
@@ -14,13 +14,13 @@ data:
   WRITE_TIMEOUT: "30"
   IDLE_TIMEOUT: "120"
   SKIP_TLS_VERIFY: "false"
-  PAGE_TITLE: "Dyn-Proxy-Go"
+  PAGE_TITLE: "Dyn-Proxy-Go with httpbin.org"
   SUB_TITLE: "Click on your proxy to navigate through it"
   PROXY_LIST: |
     proxyList:
-      - name: Proxy-1
-        Path: /proxy-1                
-      - name: Proxy-2
-        Path: /proxy-1        
-      - name: Httpbin
-        Path: /        
+      - name: UUID
+        path: uuid                    
+      - name: Get
+        path: get        
+      - name: Anything
+        path: anything 

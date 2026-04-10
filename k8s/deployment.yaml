@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: dyn-proxy-go
-        image: ghcr.io/hmdmph/dyn-proxy-go:latest
+        image: hmdmph/dyn-proxy-go:0.1.0-rc4
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -69,6 +69,21 @@ spec:
             configMapKeyRef:
               name: dyn-proxy-go-config
               key: SKIP_TLS_VERIFY
+        - name: PAGE_TITLE
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: PAGE_TITLE
+        - name: SUB_TITLE
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: SUB_TITLE
+        - name: PROXY_LIST
+          valueFrom:
+            configMapKeyRef:
+              name: dyn-proxy-go-config
+              key: PROXY_LIST
         resources:
           requests:
             memory: "64Mi"
@@ -90,7 +105,7 @@ spec:
           periodSeconds: 5
         securityContext:
           runAsNonRoot: true
-          runAsUser: 65532
+          runAsUser: 1099
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities:
