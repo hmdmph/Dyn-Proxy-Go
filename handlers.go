@@ -4,36 +4,25 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 // isSelfReferencing checks if the request host points back to the proxy itself.
 // This prevents the proxy from trying to connect to localhost:443 when the browser
-// sends requests with Host: localhost:8080.
+// sends requests with Host: localhost:8080 or localhost:8888 (port-forwarding).
 func (ps *ProxyServer) isSelfReferencing(host string) bool {
-	hostname, port, err := net.SplitHostPort(host)
+	hostname, _, err := net.SplitHostPort(host)
 	if err != nil {
 		// No port in host header, just use the hostname
 		hostname = host
-		port = ""
 	}
 
 	// Check if the hostname is a loopback or local address
+	// Any localhost/loopback address is considered self-referencing, regardless of port
+	// This handles port-forwarding scenarios where the browser port differs from ListenPort
 	isLocal := hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1" || hostname == "0.0.0.0"
 
-	if !isLocal {
-		return false
-	}
-
-	// If there's a port and it matches our listen port, it's definitely self-referencing
-	if port != "" {
-		p, _ := strconv.Atoi(port)
-		return p == ps.config.ListenPort
-	}
-
-	// Local hostname without port — likely self-referencing
-	return true
+	return isLocal
 }
 
 // healthHandler provides a health check endpoint for monitoring and Kubernetes probes.
@@ -127,6 +116,8 @@ func (ps *ProxyServer) proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Detect self-referencing requests (e.g. browser sending Host: localhost:8080)
 	// For root path, serve the dashboard; for other paths, proxy to the configured TargetHost
+	browserHost := r.Host
+	useFallbackTarget := false
 	if ps.isSelfReferencing(targetHost) {
 		if r.URL.Path == "/" {
 			ps.logger.Debug("Self-referencing request detected, serving dashboard", "request_host", targetHost)
@@ -136,6 +127,7 @@ func (ps *ProxyServer) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		// Use the configured TargetHost for non-root self-referencing requests
 		targetHost = ps.config.TargetHost
 		hostSource = "TargetHost(self-referencing)"
+		useFallbackTarget = true
 		ps.logger.Debug("Self-referencing request, routing to configured target host",
 			"original_host", r.Host, "target_host", targetHost, "path", r.URL.Path)
 	}
@@ -160,7 +152,11 @@ func (ps *ProxyServer) proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create dynamic proxy for this specific target host
 	// Pass original browser Host for Location header rewriting
-	dynamicProxy := ps.createDynamicProxy(targetHost, r.Host)
+	// If using fallback target, pass targetHost as browserHost so the Host header is correct
+	if useFallbackTarget {
+		browserHost = targetHost
+	}
+	dynamicProxy := ps.createDynamicProxy(targetHost, browserHost)
 
 	// Wrap response writer to capture status code for logging
 	wrappedWriter := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -187,4 +183,3 @@ func (ps *ProxyServer) proxyHandler(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 }
-
