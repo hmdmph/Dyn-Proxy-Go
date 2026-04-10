@@ -7,7 +7,8 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 BINARY_NAME=dyn-proxy-go
 DOCKER_IMAGE=dyn-proxy-go
-DOCKER_TAG=latest
+DOCKER_TAG=0.1.0-rc4
+PLATFORMS=linux/amd64,linux/arm64
 
 # Default target
 .DEFAULT_GOAL := help
@@ -76,7 +77,14 @@ lint:
 ## docker-build: Build Docker image
 .PHONY: docker-build
 docker-build:
-	podman build --tls-verify=false -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	podman manifest create $(DOCKER_IMAGE):$(DOCKER_TAG)
+	podman buildx build --platform $(PLATFORMS) --tls-verify=false --manifest $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	podman tag localhost/$(DOCKER_IMAGE):$(DOCKER_TAG) hmdmph/$(DOCKER_IMAGE):$(DOCKER_TAG)
+
+## docker-build-local: Build Docker image for local architecture only
+.PHONY: docker-build-local
+docker-build-local:
+	podman build --tls-verify=false -t $(DOCKER_IMAGE):$(DOCKER_TAG)-local .
 
 ## docker-run: Run Docker container
 .PHONY: docker-run
@@ -90,18 +98,19 @@ docker-run-dev:
 		-e TARGET_HOST=httpbin.org \
 		-e TARGET_PORT=443 \
 		-e SNI=httpbin.org \
-		-e LOG_LEVEL=debug \
-		$(DOCKER_IMAGE):$(DOCKER_TAG)
+		-e LOG_LEVEL=error \
+		-e PROXY_LIST='$(cat /tmp/plist.yaml)' \
+		$(DOCKER_IMAGE):$(DOCKER_TAG)-local
 
 ## docker-push: Push Docker image to registry
 .PHONY: docker-push
 docker-push:
-	podman push $(DOCKER_IMAGE):$(DOCKER_TAG)
+	podman manifest push hmdmph/$(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ## kind-load: Load image into Kind cluster
 .PHONY: kind-load
 kind-load:
-	podman save localhost/$(DOCKER_IMAGE):$(DOCKER_TAG) | kind load image-archive /dev/stdin --name dyn-proxy-go-cluster
+	podman save localhost/$(DOCKER_IMAGE):$(DOCKER_TAG) | kind load image-archive /dev/stdin --name kind-cluster
 
 ## k8s-deploy: Deploy to Kubernetes (requires kubectl and k8s manifests)
 .PHONY: k8s-deploy
@@ -115,7 +124,7 @@ k8s-delete:
 
 ## kind-deploy: Build, load into Kind, and deploy to Kubernetes
 .PHONY: kind-deploy
-kind-deploy: docker-build kind-load k8s-deploy
+kind-deploy: docker-build-local kind-load k8s-deploy
 
 ## kind-setup: Complete Kind setup - create cluster, build, load, and deploy
 .PHONY: kind-setup
